@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Technology Farmers – IoT Dashboard</title>
 
-    <!-- Libraries -->
     <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link
@@ -16,16 +15,18 @@
     <style>
       :root {
         --bg: linear-gradient(135deg, #e6f7ff, #f0fbff);
-        --card: rgba(255, 255, 255, 0.9);
+        --card: rgba(255, 255, 255, 0.92);
         --accent: #1d4ed8;
         --muted: #6b7280;
+        --border: rgba(148, 163, 184, 0.35);
       }
 
       [data-theme="dark"] {
         --bg: linear-gradient(135deg, #001628, #002a45);
-        --card: rgba(5, 12, 22, 0.85);
+        --card: rgba(5, 12, 22, 0.88);
         --accent: #60a5fa;
         --muted: #cbd5e1;
+        --border: rgba(148, 163, 184, 0.22);
         color: #e2e8f0;
       }
 
@@ -70,7 +71,7 @@
       }
 
       .logo:hover {
-        transform: scale(1.15) rotate(5deg);
+        transform: scale(1.12) rotate(5deg);
       }
 
       @keyframes swim {
@@ -100,15 +101,19 @@
       }
 
       .btn.small {
-        padding: 6px 10px;
-        font-size: 0.8rem;
+        padding: 6px 12px;
+        font-size: 0.88rem;
       }
 
       .btn:hover {
         filter: brightness(1.05);
       }
 
-      /* 3 SENSOR NẰM NGANG */
+      .btn:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+      }
+
       .sensor-row {
         width: 100%;
         max-width: 1100px;
@@ -129,7 +134,7 @@
 
       .card:hover {
         transform: translateY(-3px);
-        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.25);
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.22);
       }
 
       .sensor-card {
@@ -151,19 +156,19 @@
       }
 
       .sensor-title {
-        font-weight: 600;
+        font-weight: 700;
         font-size: 1rem;
       }
 
       .sensor-sub {
-        font-size: 0.78rem;
+        font-size: 0.82rem;
         color: var(--muted);
       }
 
       .sensor-line {
         display: flex;
         justify-content: space-between;
-        font-size: 0.9rem;
+        font-size: 0.95rem;
         align-items: center;
       }
 
@@ -177,11 +182,10 @@
         border-radius: 8px;
         font-weight: 700;
         color: var(--accent);
-        min-width: 70px;
+        min-width: 80px;
         text-align: right;
       }
 
-      /* 1 CỘT BIỂU ĐỒ */
       .charts {
         margin-top: 20px;
         width: 100%;
@@ -205,11 +209,10 @@
       }
 
       .chart-title {
-        font-weight: 600;
+        font-weight: 700;
         margin-bottom: 6px;
       }
 
-      /* FLOATING CHAT BUBBLE */
       .chat-bubble {
         position: fixed;
         right: 22px;
@@ -234,20 +237,20 @@
         box-shadow: 0 10px 26px rgba(15, 23, 42, 0.6);
       }
 
-      /* FLOATING CHAT PANEL */
       .chat-panel {
         position: fixed;
-        right: 22px;
-        bottom: 90px;
-        width: 340px;
-        max-width: calc(100% - 44px);
-        height: 460px;
+        right: 24px;
+        bottom: 24px;
+        width: 430px;
+        max-width: calc(100vw - 24px);
+        height: 560px;
         background: var(--card);
-        border-radius: 18px;
+        border: 1px solid var(--border);
+        border-radius: 22px;
         display: none;
         flex-direction: column;
-        padding: 16px;
-        box-shadow: 0 14px 34px rgba(15, 23, 42, 0.75);
+        padding: 14px;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.28);
         z-index: 1000;
       }
 
@@ -255,65 +258,115 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 8px;
+        gap: 10px;
+        padding: 4px 4px 10px 4px;
+        flex-shrink: 0;
       }
 
-      .chat-messages {
-        flex: 1;
-        overflow-y: auto;
-        padding: 10px;
-        background: rgba(15, 23, 42, 0.06);
-        border-radius: 12px;
-        font-size: 0.9rem;
-      }
-
-      .msg {
-        padding: 8px 10px;
-        margin-bottom: 8px;
-        border-radius: 10px;
-        font-size: 0.9rem;
-        white-space: pre-wrap;
-      }
-
-      .msg.user {
-        background: rgba(96, 165, 250, 0.25);
-        text-align: right;
-      }
-
-      .msg.assistant {
-        background: rgba(15, 23, 42, 0.08);
-      }
-
-      .chat-input-row {
-        margin-top: 8px;
+      .chat-header-left {
         display: flex;
-        gap: 6px;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
       }
 
-      .chat-input-row input {
-        flex: 1;
-        padding: 8px;
-        border-radius: 10px;
-        border: 1px solid #94a3b8;
-        font-size: 0.9rem;
-        outline: none;
+      .chat-avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: 999px;
+        background: radial-gradient(circle, #4ade80, #22c55e);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        flex-shrink: 0;
       }
 
-      .chat-input-row input:focus {
-        border-color: var(--accent);
+      .chat-title {
+        font-weight: 700;
+        font-size: 1rem;
+        line-height: 1.2;
+      }
+
+      .chat-subtitle {
+        font-size: 0.8rem;
+        color: var(--muted);
+        line-height: 1.3;
       }
 
       .chat-close {
         cursor: pointer;
-        font-size: 20px;
+        font-size: 22px;
         color: var(--muted);
+        line-height: 1;
+        flex-shrink: 0;
       }
 
       .chat-close:hover {
         color: #ef4444;
       }
 
-      /* Responsive */
+      .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 14px;
+        background: rgba(15, 23, 42, 0.05);
+        border-radius: 16px;
+        font-size: 0.92rem;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-height: 0;
+      }
+
+      .msg {
+        padding: 12px 14px;
+        border-radius: 14px;
+        font-size: 0.95rem;
+        white-space: pre-wrap;
+        line-height: 1.5;
+        max-width: 92%;
+      }
+
+      .msg.user {
+        background: rgba(96, 165, 250, 0.22);
+        align-self: flex-end;
+        text-align: left;
+      }
+
+      .msg.assistant {
+        background: rgba(15, 23, 42, 0.08);
+        align-self: flex-start;
+      }
+
+      .chat-input-row {
+        margin-top: 12px;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-shrink: 0;
+      }
+
+      .chat-input-row input {
+        flex: 1;
+        padding: 12px 14px;
+        border-radius: 14px;
+        border: 1px solid #94a3b8;
+        font-size: 0.95rem;
+        outline: none;
+        background: white;
+      }
+
+      [data-theme="dark"] .chat-input-row input {
+        background: rgba(15, 23, 42, 0.35);
+        color: #e2e8f0;
+        border-color: rgba(148, 163, 184, 0.35);
+      }
+
+      .chat-input-row input:focus {
+        border-color: var(--accent);
+      }
+
       @media (max-width: 900px) {
         .sensor-row {
           flex-direction: column;
@@ -326,6 +379,14 @@
           align-items: flex-start;
           gap: 10px;
         }
+
+        .chat-panel {
+          right: 12px;
+          bottom: 12px;
+          width: calc(100vw - 24px);
+          height: 70vh;
+          max-width: none;
+        }
       }
     </style>
   </head>
@@ -336,16 +397,13 @@
         <div class="logo">🐟</div>
         <div>
           <h2 style="margin: 0">Technology Farmers</h2>
-          <!-- <small style="color: var(--muted)">Team: Gia Huy &amp; Bảo Trân 🚀</small> -->
         </div>
       </div>
 
-      <!-- ✅ RIGHT BUTTONS -->
-      <div style="display: flex; align-items: center; gap: 10px">
-        <!-- ✅ EXPORT JSON BUTTON -->
+      <!-- <div style="display: flex; align-items: center; gap: 10px">
         <button id="exportJson" class="btn">
           <i class="fas fa-download"></i><span>Export JSON</span>
-        </button>
+        </button> -->
 
         <button id="toggleTheme" class="btn">
           <i class="fas fa-moon"></i><span>Dark</span>
@@ -353,7 +411,6 @@
       </div>
     </div>
 
-    <!-- SENSOR ROW -->
     <div class="sensor-row">
       <div class="card sensor-card">
         <div class="sensor-header">
@@ -406,7 +463,6 @@
       </div>
     </div>
 
-    <!-- BIỂU ĐỒ 1 CỘT -->
     <div class="charts">
       <div class="card">
         <div class="chart-title">🧪 pH Chart</div>
@@ -424,31 +480,15 @@
       </div>
     </div>
 
-    <!-- FLOATING CHAT -->
     <div id="chatBubble" class="chat-bubble" title="Chat với trợ lý AI">🐟</div>
 
     <div id="chatPanel" class="chat-panel">
       <div class="chat-header-row">
-        <div style="display: flex; align-items: center; gap: 8px">
-          <div
-            style="
-              width: 32px;
-              height: 32px;
-              border-radius: 999px;
-              background: radial-gradient(circle, #4ade80, #22c55e);
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: 18px;
-            "
-          >
-            🐟
-          </div>
+        <div class="chat-header-left">
+          <div class="chat-avatar">🐟</div>
           <div>
-            <div style="font-weight: 600; font-size: 0.95rem">
-              Technology Farmers Assistant
-            </div>
-            <div style="font-size: 0.75rem; color: var(--muted)">
+            <div class="chat-title">Technology Farmers Assistant</div>
+            <div class="chat-subtitle">
               Hỏi gì về nước, cảm biến, nuôi cá...
             </div>
           </div>
@@ -458,18 +498,19 @@
 
       <div id="chatMessages" class="chat-messages">
         <div class="msg assistant">
-          Xin chào 👋, mình là trợ lý AI của hệ thống. Bạn có thể hỏi về pH, độ
-          đục, nhiệt độ nước hoặc cách tối ưu nuôi cá.
+Xin chào, mình sẽ phân tích dữ liệu cảm biến hiện tại và đưa ra đánh giá ngắn gọn, dễ hiểu.
         </div>
       </div>
 
       <div class="chat-input-row">
-        <input id="chatInput" placeholder="Nhập câu hỏi..." />
+        <input
+          id="chatInput"
+          placeholder="Ví dụ: Nước hiện tại có an toàn cho cá không?"
+        />
         <button id="chatSend" class="btn small">Gửi</button>
       </div>
     </div>
 
-    <!-- Âm thanh cảnh báo NTU cao -->
     <audio id="alertSound">
       <source
         src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA="
@@ -478,12 +519,21 @@
     </audio>
 
     <script>
-      // ========= CONFIG MQTT =========
       const MQTT_URL = "wss://broker.hivemq.com:8884/mqtt";
       const TOPIC = "demo/baotran_test_01/sensor/state";
+      const DEMO_MODE = true;
 
       const MAX_POINTS = 1000;
       const data = { labels: [], ntu: [], temp: [], ph: [] };
+
+      let latestSensorData = {
+        turbidity_ntu: null,
+        voltage: null,
+        temperature_c: null,
+        ph_value: null,
+        ph_voltage: null,
+        updated_at: null,
+      };
 
       const ntuVal = document.getElementById("ntuVal");
       const voltVal = document.getElementById("voltVal");
@@ -507,6 +557,10 @@
               },
             ],
           },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+          },
         });
 
         tempChart = new Chart(document.getElementById("tempChart"), {
@@ -522,6 +576,10 @@
               },
             ],
           },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+          },
         });
 
         phChart = new Chart(document.getElementById("phChart"), {
@@ -536,6 +594,10 @@
                 tension: 0.25,
               },
             ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
           },
         });
       }
@@ -567,6 +629,15 @@
         const ph = Number(json.ph_value ?? 0);
         const phVolt = Number(json.ph_voltage ?? 0);
 
+        latestSensorData = {
+          turbidity_ntu: isFinite(ntu) ? ntu : null,
+          voltage: isFinite(volt) ? volt : null,
+          temperature_c: isFinite(temp) ? temp : null,
+          ph_value: isFinite(ph) ? ph : null,
+          ph_voltage: isFinite(phVolt) ? phVolt : null,
+          updated_at: new Date().toLocaleString(),
+        };
+
         const time = new Date().toLocaleTimeString();
 
         data.labels.push(time);
@@ -591,7 +662,6 @@
           ? phVolt.toFixed(2) + " V"
           : "-- V";
 
-        // ====== CẢNH BÁO NTU CAO (ÂM THANH + MÀU ĐỎ) ======
         if (isFinite(ntu) && ntu > 1000) {
           const audio = document.getElementById("alertSound");
           if (audio) {
@@ -605,7 +675,6 @@
           ntuVal.style.color = "var(--accent)";
         }
 
-        // ====== CẢNH BÁO pH VƯỢT NGƯỠNG ======
         if (isFinite(ph) && (ph < 6.5 || ph > 8.5)) {
           phVal.style.background = "rgba(248, 113, 113, 0.35)";
           phVal.style.color = "#b91c1c";
@@ -619,7 +688,55 @@
         phChart.update();
       }
 
-      // ========= EXPORT JSON (DEMO NHANH - XUAT SERIES DANG VE) =========
+      function taoDuLieuGia() {
+        const now = Date.now() / 1000;
+
+        const nhietDo =
+          28 + Math.sin(now / 8) * 1.8 + (Math.random() - 0.5) * 0.6;
+        const ph =
+          7.2 + Math.sin(now / 11) * 0.5 + (Math.random() - 0.5) * 0.08;
+        const doDuc =
+          420 + Math.sin(now / 6) * 180 + (Math.random() - 0.5) * 60;
+
+        const phVoltage = 2.5 + (7 - ph) * 0.12;
+        const turbVoltage = 2.8 - doDuc / 2000;
+
+        return {
+          turbidity_ntu: Math.max(0, doDuc),
+          voltage: Math.max(0, turbVoltage),
+          temperature_c: nhietDo,
+          ph_value: ph,
+          ph_voltage: Math.max(0, phVoltage),
+        };
+      }
+
+      function batDauDemoData() {
+        handleSensor({
+          turbidity_ntu: 450,
+          voltage: 2.55,
+          temperature_c: 28.4,
+          ph_value: 7.25,
+          ph_voltage: 2.47,
+        });
+
+        setInterval(() => {
+          const duLieuGia = taoDuLieuGia();
+          const randomEvent = Math.random();
+
+          if (randomEvent < 0.08) {
+            duLieuGia.ph_value = 8.9;
+            duLieuGia.ph_voltage = 2.15;
+          } else if (randomEvent < 0.16) {
+            duLieuGia.turbidity_ntu = 1250;
+            duLieuGia.voltage = 1.95;
+          } else if (randomEvent < 0.24) {
+            duLieuGia.temperature_c = 31.4;
+          }
+
+          handleSensor(duLieuGia);
+        }, 2000);
+      }
+
       const exportBtn = document.getElementById("exportJson");
 
       function buildExportFromChartSeries() {
@@ -629,6 +746,7 @@
             topic: TOPIC,
             exported_at: new Date().toISOString(),
             max_points: MAX_POINTS,
+            demo_mode: DEMO_MODE,
           },
           series: {
             labels: [...data.labels],
@@ -665,7 +783,6 @@
         downloadJson(`iot_chart_export_${stamp}.json`, payload);
       });
 
-      // ========= THEME TOGGLE =========
       const toggleThemeBtn = document.getElementById("toggleTheme");
       toggleThemeBtn.addEventListener("click", () => {
         const body = document.body;
@@ -676,7 +793,6 @@
           : '<i class="fas fa-sun"></i><span>Light</span>';
       });
 
-      // ========= FLOATING CHAT =========
       const chatBubble = document.getElementById("chatBubble");
       const chatPanel = document.getElementById("chatPanel");
       const chatClose = document.getElementById("chatClose");
@@ -703,59 +819,136 @@
         chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
       }
 
-      const OPENAI_API_KEY = "YOUR_API_KEY_HERE";
+      function buildPrompt(userQuestion, sensorData) {
+        return `
+Bạn là trợ lý AI cho hệ thống IoT giám sát chất lượng nước nuôi cá "Technology Farmers".
 
-      async function sendChat() {
+Mục tiêu:
+- Phân tích dữ liệu cảm biến nước hiện tại
+- Đánh giá mức độ rủi ro
+- Giải thích ngắn gọn, dễ hiểu
+- Đưa ra khuyến nghị thực tế cho người nuôi cá
+- Trả lời bằng tiếng Việt, rõ ràng, không dài dòng
+
+Dữ liệu cảm biến hiện tại:
+- Turbidity (NTU): ${sensorData.turbidity_ntu ?? "không có"}
+- Temperature (°C): ${sensorData.temperature_c ?? "không có"}
+- pH: ${sensorData.ph_value ?? "không có"}
+- Voltage turbidity (V): ${sensorData.voltage ?? "không có"}
+- Voltage pH (V): ${sensorData.ph_voltage ?? "không có"}
+- Last update: ${sensorData.updated_at ?? "không có"}
+
+Câu hỏi người dùng:
+${userQuestion}
+
+Định dạng trả lời:
+1. Mức độ
+2. Giải thích
+3. Khuyến nghị
+`.trim();
+      }
+
+      function simulateAssistantAnswer(userQuestion, sensorData) {
+        const ntu = sensorData.turbidity_ntu;
+        const temp = sensorData.temperature_c;
+        const ph = sensorData.ph_value;
+
+        if (ntu == null || temp == null || ph == null) {
+          return `Mức độ: Chưa đủ dữ liệu
+
+Giải thích: Hệ thống chưa nhận đủ dữ liệu cảm biến mới nhất để phân tích.
+
+Khuyến nghị: Kiểm tra kết nối MQTT, cảm biến và luồng dữ liệu đầu vào.`;
+        }
+
+        let risk = "Ổn định";
+        const explanations = [];
+        const recommendations = [];
+
+        if (ph < 6.5 || ph > 8.5) {
+          risk = "Cảnh báo cao";
+          explanations.push(
+            "Chỉ số pH đang nằm ngoài ngưỡng phù hợp cho môi trường nuôi cá."
+          );
+          recommendations.push(
+            "Điều chỉnh pH từ từ và kiểm tra lại nguồn nước."
+          );
+        }
+
+        if (ntu > 1000) {
+          if (risk !== "Cảnh báo cao") risk = "Cảnh báo trung bình";
+          explanations.push(
+            "Độ đục cao cho thấy nước có thể chứa nhiều chất lơ lửng."
+          );
+          recommendations.push(
+            "Kiểm tra hệ thống lọc và xem lại chất lượng nước đầu vào."
+          );
+        }
+
+        if (temp > 30) {
+          if (risk !== "Cảnh báo cao") risk = "Cảnh báo trung bình";
+          explanations.push(
+            "Nhiệt độ nước đang cao hơn mức ổn định thông thường."
+          );
+          recommendations.push(
+            "Theo dõi oxy hòa tan và hạn chế gây sốc nhiệt cho cá."
+          );
+        }
+
+        if (explanations.length === 0) {
+          explanations.push("Các chỉ số đang ở mức tương đối ổn định.");
+          recommendations.push(
+            "Tiếp tục theo dõi định kỳ và duy trì điều kiện hiện tại."
+          );
+        }
+
+        if (/ph/i.test(userQuestion)) {
+          recommendations.push(
+            "Ưu tiên kiểm tra pH vào nhiều thời điểm trong ngày để đánh giá biến động."
+          );
+        }
+
+        if (/độ đục|ntu|turbidity/i.test(userQuestion)) {
+          recommendations.push(
+            "Nếu độ đục tăng liên tục, nên kiểm tra cặn, tảo và hệ thống lọc."
+          );
+        }
+
+        if (/nhiệt độ|temp/i.test(userQuestion)) {
+          recommendations.push(
+            "Theo dõi nhiệt độ vào buổi trưa và chiều để phát hiện xu hướng tăng."
+          );
+        }
+
+        return `Mức độ: ${risk}
+
+Giải thích: ${explanations.join(" ")}
+
+Khuyến nghị: ${recommendations.join(" ")}`;
+      }
+
+      function sendChat() {
         const content = chatInputEl.value.trim();
         if (!content) return;
-        if (!OPENAI_API_KEY || OPENAI_API_KEY === "YOUR_API_KEY_HERE") {
-          alert("Bạn chưa cấu hình OPENAI_API_KEY trong file HTML.");
-          return;
-        }
 
         appendMessage("user", content);
         chatInputEl.value = "";
         chatInputEl.disabled = true;
         chatSendBtn.disabled = true;
-        chatSendBtn.textContent = "Đang trả lời...";
+        chatSendBtn.textContent = "Đang phân tích...";
 
-        try {
-          const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + OPENAI_API_KEY,
-            },
-            body: JSON.stringify({
-              model: "gpt-4.1-mini",
-              messages: [
-                {
-                  role: "system",
-                  content:
-                    "Bạn là trợ lý cho hệ thống IoT nuôi cá 'Technology Farmers'. Hãy trả lời ngắn gọn, dễ hiểu, ưu tiên tiếng Việt.",
-                },
-                { role: "user", content },
-              ],
-            }),
-          });
+        const prompt = buildPrompt(content, latestSensorData);
+        console.log("Generated prompt:", prompt);
 
-          if (!resp.ok) {
-            appendMessage("assistant", "⚠ Lỗi khi gọi OpenAI API: " + resp.status);
-          } else {
-            const data = await resp.json();
-            const answer =
-              data.choices?.[0]?.message?.content ||
-              "Mình không nhận được câu trả lời.";
-            appendMessage("assistant", answer);
-          }
-        } catch (err) {
-          appendMessage("assistant", "⚠ Lỗi mạng hoặc API: " + err.message);
-        } finally {
+        const answer = simulateAssistantAnswer(content, latestSensorData);
+
+        setTimeout(() => {
+          appendMessage("assistant", answer);
           chatInputEl.disabled = false;
           chatSendBtn.disabled = false;
           chatSendBtn.textContent = "Gửi";
           chatInputEl.focus();
-        }
+        }, 500);
       }
 
       chatSendBtn.onclick = sendChat;
@@ -766,10 +959,14 @@
         }
       });
 
-      // ========= INIT =========
       window.addEventListener("load", () => {
         initCharts();
-        connectMQTT();
+
+        if (DEMO_MODE) {
+          batDauDemoData();
+        } else {
+          connectMQTT();
+        }
       });
     </script>
   </body>

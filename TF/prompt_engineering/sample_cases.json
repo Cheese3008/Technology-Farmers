@@ -1,0 +1,23 @@
+[
+  {
+    "case_name": "normal_water",
+    "temperature": 28.4,
+    "ph": 7.2,
+    "turbidity": 420,
+    "question": "Nước hiện tại có an toàn cho cá không?"
+  },
+  {
+    "case_name": "high_ph",
+    "temperature": 29.0,
+    "ph": 8.9,
+    "turbidity": 430,
+    "question": "pH hiện tại có đáng lo không?"
+  },
+  {
+    "case_name": "high_turbidity",
+    "temperature": 28.7,
+    "ph": 7.1,
+    "turbidity": 1250,
+    "question": "Độ đục này có ảnh hưởng gì?"
+  }
+]
