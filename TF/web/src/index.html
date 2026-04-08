@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Technology Farmers – IoT Dashboard</title>
+
+    <!-- Libraries -->
+    <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+
+    <style>
+      :root {
+        --bg: linear-gradient(135deg, #e6f7ff, #f0fbff);
+        --card: rgba(255, 255, 255, 0.9);
+        --accent: #1d4ed8;
+        --muted: #6b7280;
+      }
+
+      [data-theme="dark"] {
+        --bg: linear-gradient(135deg, #001628, #002a45);
+        --card: rgba(5, 12, 22, 0.85);
+        --accent: #60a5fa;
+        --muted: #cbd5e1;
+        color: #e2e8f0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont,
+          sans-serif;
+        background: var(--bg);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 24px;
+        min-height: 100vh;
+        transition: background 0.35s ease, color 0.35s ease;
+      }
+
+      .topbar {
+        width: 100%;
+        max-width: 1100px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 18px;
+      }
+
+      .logo {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        background: radial-gradient(circle, #8dd3ff, #4ebeff, #0099ff);
+        box-shadow: 0 4px 14px rgba(15, 118, 178, 0.5);
+        animation: swim 4s ease-in-out infinite;
+        transition: transform 0.25s;
+      }
+
+      .logo:hover {
+        transform: scale(1.15) rotate(5deg);
+      }
+
+      @keyframes swim {
+        0% {
+          transform: translateX(0px);
+        }
+        50% {
+          transform: translateX(6px);
+        }
+        100% {
+          transform: translateX(0px);
+        }
+      }
+
+      .btn {
+        padding: 8px 14px;
+        border-radius: 10px;
+        background: transparent;
+        border: 1px solid var(--accent);
+        color: var(--accent);
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .btn.small {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+      }
+
+      .btn:hover {
+        filter: brightness(1.05);
+      }
+
+      /* 3 SENSOR NẰM NGANG */
+      .sensor-row {
+        width: 100%;
+        max-width: 1100px;
+        display: flex;
+        gap: 18px;
+        flex-wrap: wrap;
+      }
+
+      .card {
+        flex: 1;
+        background: var(--card);
+        border-radius: 16px;
+        padding: 18px;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.15);
+        backdrop-filter: blur(8px);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.25);
+      }
+
+      .sensor-card {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .sensor-header {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .sensor-icon {
+        font-size: 34px;
+        color: var(--accent);
+      }
+
+      .sensor-title {
+        font-weight: 600;
+        font-size: 1rem;
+      }
+
+      .sensor-sub {
+        font-size: 0.78rem;
+        color: var(--muted);
+      }
+
+      .sensor-line {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.9rem;
+        align-items: center;
+      }
+
+      .sensor-label {
+        color: var(--muted);
+      }
+
+      .sensor-value {
+        background: rgba(99, 102, 241, 0.15);
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-weight: 700;
+        color: var(--accent);
+        min-width: 70px;
+        text-align: right;
+      }
+
+      /* 1 CỘT BIỂU ĐỒ */
+      .charts {
+        margin-top: 20px;
+        width: 100%;
+        max-width: 1100px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .chart-wrap {
+        width: 100%;
+        height: 320px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .chart-wrap canvas {
+        width: 100% !important;
+        height: 100% !important;
+      }
+
+      .chart-title {
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+
+      /* FLOATING CHAT BUBBLE */
+      .chat-bubble {
+        position: fixed;
+        right: 22px;
+        bottom: 22px;
+        width: 62px;
+        height: 62px;
+        border-radius: 50%;
+        background: radial-gradient(circle, #60a5fa, #2563eb);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 30px;
+        color: white;
+        cursor: pointer;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.45);
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+        z-index: 999;
+      }
+
+      .chat-bubble:hover {
+        transform: scale(1.12);
+        box-shadow: 0 10px 26px rgba(15, 23, 42, 0.6);
+      }
+
+      /* FLOATING CHAT PANEL */
+      .chat-panel {
+        position: fixed;
+        right: 22px;
+        bottom: 90px;
+        width: 340px;
+        max-width: calc(100% - 44px);
+        height: 460px;
+        background: var(--card);
+        border-radius: 18px;
+        display: none;
+        flex-direction: column;
+        padding: 16px;
+        box-shadow: 0 14px 34px rgba(15, 23, 42, 0.75);
+        z-index: 1000;
+      }
+
+      .chat-header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+
+      .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 10px;
+        background: rgba(15, 23, 42, 0.06);
+        border-radius: 12px;
+        font-size: 0.9rem;
+      }
+
+      .msg {
+        padding: 8px 10px;
+        margin-bottom: 8px;
+        border-radius: 10px;
+        font-size: 0.9rem;
+        white-space: pre-wrap;
+      }
+
+      .msg.user {
+        background: rgba(96, 165, 250, 0.25);
+        text-align: right;
+      }
+
+      .msg.assistant {
+        background: rgba(15, 23, 42, 0.08);
+      }
+
+      .chat-input-row {
+        margin-top: 8px;
+        display: flex;
+        gap: 6px;
+      }
+
+      .chat-input-row input {
+        flex: 1;
+        padding: 8px;
+        border-radius: 10px;
+        border: 1px solid #94a3b8;
+        font-size: 0.9rem;
+        outline: none;
+      }
+
+      .chat-input-row input:focus {
+        border-color: var(--accent);
+      }
+
+      .chat-close {
+        cursor: pointer;
+        font-size: 20px;
+        color: var(--muted);
+      }
+
+      .chat-close:hover {
+        color: #ef4444;
+      }
+
+      /* Responsive */
+      @media (max-width: 900px) {
+        .sensor-row {
+          flex-direction: column;
+        }
+      }
+
+      @media (max-width: 600px) {
+        .topbar {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 10px;
+        }
+      }
+    </style>
+  </head>
+
+  <body data-theme="light">
+    <div class="topbar">
+      <div style="display: flex; align-items: center; gap: 12px">
+        <div class="logo">🐟</div>
+        <div>
+          <h2 style="margin: 0">Technology Farmers</h2>
+          <!-- <small style="color: var(--muted)">Team: Gia Huy &amp; Bảo Trân 🚀</small> -->
+        </div>
+      </div>
+
+      <!-- ✅ RIGHT BUTTONS -->
+      <div style="display: flex; align-items: center; gap: 10px">
+        <!-- ✅ EXPORT JSON BUTTON -->
+        <button id="exportJson" class="btn">
+          <i class="fas fa-download"></i><span>Export JSON</span>
+        </button>
+
+        <button id="toggleTheme" class="btn">
+          <i class="fas fa-moon"></i><span>Dark</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- SENSOR ROW -->
+    <div class="sensor-row">
+      <div class="card sensor-card">
+        <div class="sensor-header">
+          <i class="fas fa-water sensor-icon"></i>
+          <div>
+            <div class="sensor-title">Turbidity</div>
+            <div class="sensor-sub">TS360 sensor</div>
+          </div>
+        </div>
+        <div class="sensor-line">
+          <span class="sensor-label">NTU</span>
+          <span id="ntuVal" class="sensor-value">--</span>
+        </div>
+        <div class="sensor-line">
+          <span class="sensor-label">Voltage</span>
+          <span id="voltVal" class="sensor-value">-- V</span>
+        </div>
+      </div>
+
+      <div class="card sensor-card">
+        <div class="sensor-header">
+          <i class="fas fa-temperature-high sensor-icon"></i>
+          <div>
+            <div class="sensor-title">Temperature</div>
+            <div class="sensor-sub">DS18B20</div>
+          </div>
+        </div>
+        <div class="sensor-line">
+          <span class="sensor-label">Water temp</span>
+          <span id="tempVal" class="sensor-value">-- °C</span>
+        </div>
+      </div>
+
+      <div class="card sensor-card">
+        <div class="sensor-header">
+          <i class="fas fa-vial sensor-icon"></i>
+          <div>
+            <div class="sensor-title">pH Sensor</div>
+            <div class="sensor-sub">Gravity Analog pH</div>
+          </div>
+        </div>
+        <div class="sensor-line">
+          <span class="sensor-label">pH</span>
+          <span id="phVal" class="sensor-value">--</span>
+        </div>
+        <div class="sensor-line">
+          <span class="sensor-label">Voltage</span>
+          <span id="phVoltVal" class="sensor-value">-- V</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- BIỂU ĐỒ 1 CỘT -->
+    <div class="charts">
+      <div class="card">
+        <div class="chart-title">🧪 pH Chart</div>
+        <div class="chart-wrap"><canvas id="phChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="chart-title">📈 Turbidity Chart</div>
+        <div class="chart-wrap"><canvas id="turbChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="chart-title">🌡️ Temperature Chart</div>
+        <div class="chart-wrap"><canvas id="tempChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- FLOATING CHAT -->
+    <div id="chatBubble" class="chat-bubble" title="Chat với trợ lý AI">🐟</div>
+
+    <div id="chatPanel" class="chat-panel">
+      <div class="chat-header-row">
+        <div style="display: flex; align-items: center; gap: 8px">
+          <div
+            style="
+              width: 32px;
+              height: 32px;
+              border-radius: 999px;
+              background: radial-gradient(circle, #4ade80, #22c55e);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 18px;
+            "
+          >
+            🐟
+          </div>
+          <div>
+            <div style="font-weight: 600; font-size: 0.95rem">
+              Technology Farmers Assistant
+            </div>
+            <div style="font-size: 0.75rem; color: var(--muted)">
+              Hỏi gì về nước, cảm biến, nuôi cá...
+            </div>
+          </div>
+        </div>
+        <div id="chatClose" class="chat-close">✖</div>
+      </div>
+
+      <div id="chatMessages" class="chat-messages">
+        <div class="msg assistant">
+          Xin chào 👋, mình là trợ lý AI của hệ thống. Bạn có thể hỏi về pH, độ
+          đục, nhiệt độ nước hoặc cách tối ưu nuôi cá.
+        </div>
+      </div>
+
+      <div class="chat-input-row">
+        <input id="chatInput" placeholder="Nhập câu hỏi..." />
+        <button id="chatSend" class="btn small">Gửi</button>
+      </div>
+    </div>
+
+    <!-- Âm thanh cảnh báo NTU cao -->
+    <audio id="alertSound">
+      <source
+        src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA="
+        type="audio/wav"
+      />
+    </audio>
+
+    <script>
+      // ========= CONFIG MQTT =========
+      const MQTT_URL = "wss://broker.hivemq.com:8884/mqtt";
+      const TOPIC = "demo/baotran_test_01/sensor/state";
+
+      const MAX_POINTS = 1000;
+      const data = { labels: [], ntu: [], temp: [], ph: [] };
+
+      const ntuVal = document.getElementById("ntuVal");
+      const voltVal = document.getElementById("voltVal");
+      const tempVal = document.getElementById("tempVal");
+      const phVal = document.getElementById("phVal");
+      const phVoltVal = document.getElementById("phVoltVal");
+
+      let turbChart, tempChart, phChart;
+
+      function initCharts() {
+        turbChart = new Chart(document.getElementById("turbChart"), {
+          type: "line",
+          data: {
+            labels: data.labels,
+            datasets: [
+              {
+                label: "Turbidity (NTU)",
+                data: data.ntu,
+                borderColor: "#3b82f6",
+                tension: 0.25,
+              },
+            ],
+          },
+        });
+
+        tempChart = new Chart(document.getElementById("tempChart"), {
+          type: "line",
+          data: {
+            labels: data.labels,
+            datasets: [
+              {
+                label: "Temperature (°C)",
+                data: data.temp,
+                borderColor: "#ef4444",
+                tension: 0.25,
+              },
+            ],
+          },
+        });
+
+        phChart = new Chart(document.getElementById("phChart"), {
+          type: "line",
+          data: {
+            labels: data.labels,
+            datasets: [
+              {
+                label: "pH",
+                data: data.ph,
+                borderColor: "#8b5cf6",
+                tension: 0.25,
+              },
+            ],
+          },
+        });
+      }
+
+      function connectMQTT() {
+        const client = mqtt.connect(MQTT_URL, {
+          clientId: "web_" + Math.random().toString(16).slice(2),
+        });
+
+        client.on("connect", () => {
+          client.subscribe(TOPIC);
+        });
+
+        client.on("message", (topic, payload) => {
+          if (topic !== TOPIC) return;
+          try {
+            const json = JSON.parse(payload.toString());
+            handleSensor(json);
+          } catch (e) {
+            console.error("JSON parse error:", e);
+          }
+        });
+      }
+
+      function handleSensor(json) {
+        const ntu = Number(json.turbidity_ntu ?? 0);
+        const volt = Number(json.voltage ?? 0);
+        const temp = Number(json.temperature_c ?? 0);
+        const ph = Number(json.ph_value ?? 0);
+        const phVolt = Number(json.ph_voltage ?? 0);
+
+        const time = new Date().toLocaleTimeString();
+
+        data.labels.push(time);
+        data.ntu.push(ntu);
+        data.temp.push(temp);
+        data.ph.push(ph);
+
+        if (data.labels.length > MAX_POINTS) {
+          data.labels.shift();
+          data.ntu.shift();
+          data.temp.shift();
+          data.ph.shift();
+        }
+
+        ntuVal.textContent = isFinite(ntu) ? ntu.toFixed(1) : "--";
+        voltVal.textContent = isFinite(volt) ? volt.toFixed(2) + " V" : "-- V";
+        tempVal.textContent = isFinite(temp)
+          ? temp.toFixed(1) + " °C"
+          : "-- °C";
+        phVal.textContent = isFinite(ph) ? ph.toFixed(2) : "--";
+        phVoltVal.textContent = isFinite(phVolt)
+          ? phVolt.toFixed(2) + " V"
+          : "-- V";
+
+        // ====== CẢNH BÁO NTU CAO (ÂM THANH + MÀU ĐỎ) ======
+        if (isFinite(ntu) && ntu > 1000) {
+          const audio = document.getElementById("alertSound");
+          if (audio) {
+            audio.currentTime = 0;
+            audio.play().catch(() => {});
+          }
+          ntuVal.style.background = "rgba(248, 113, 113, 0.35)";
+          ntuVal.style.color = "#b91c1c";
+        } else {
+          ntuVal.style.background = "rgba(99,102,241,0.15)";
+          ntuVal.style.color = "var(--accent)";
+        }
+
+        // ====== CẢNH BÁO pH VƯỢT NGƯỠNG ======
+        if (isFinite(ph) && (ph < 6.5 || ph > 8.5)) {
+          phVal.style.background = "rgba(248, 113, 113, 0.35)";
+          phVal.style.color = "#b91c1c";
+        } else {
+          phVal.style.background = "rgba(99,102,241,0.15)";
+          phVal.style.color = "var(--accent)";
+        }
+
+        turbChart.update();
+        tempChart.update();
+        phChart.update();
+      }
+
+      // ========= EXPORT JSON (DEMO NHANH - XUAT SERIES DANG VE) =========
+      const exportBtn = document.getElementById("exportJson");
+
+      function buildExportFromChartSeries() {
+        return {
+          meta: {
+            project: "Technology Farmers",
+            topic: TOPIC,
+            exported_at: new Date().toISOString(),
+            max_points: MAX_POINTS,
+          },
+          series: {
+            labels: [...data.labels],
+            turbidity_ntu: [...data.ntu],
+            temperature_c: [...data.temp],
+            ph_value: [...data.ph],
+          },
+          latest: {
+            turbidity_ntu: data.ntu.at(-1) ?? null,
+            temperature_c: data.temp.at(-1) ?? null,
+            ph_value: data.ph.at(-1) ?? null,
+            time_label: data.labels.at(-1) ?? null,
+          },
+        };
+      }
+
+      function downloadJson(filename, obj) {
+        const blob = new Blob([JSON.stringify(obj, null, 2)], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      exportBtn?.addEventListener("click", () => {
+        const payload = buildExportFromChartSeries();
+        const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+        downloadJson(`iot_chart_export_${stamp}.json`, payload);
+      });
+
+      // ========= THEME TOGGLE =========
+      const toggleThemeBtn = document.getElementById("toggleTheme");
+      toggleThemeBtn.addEventListener("click", () => {
+        const body = document.body;
+        const isDark = body.getAttribute("data-theme") === "dark";
+        body.setAttribute("data-theme", isDark ? "light" : "dark");
+        toggleThemeBtn.innerHTML = isDark
+          ? '<i class="fas fa-moon"></i><span>Dark</span>'
+          : '<i class="fas fa-sun"></i><span>Light</span>';
+      });
+
+      // ========= FLOATING CHAT =========
+      const chatBubble = document.getElementById("chatBubble");
+      const chatPanel = document.getElementById("chatPanel");
+      const chatClose = document.getElementById("chatClose");
+      const chatMessagesEl = document.getElementById("chatMessages");
+      const chatInputEl = document.getElementById("chatInput");
+      const chatSendBtn = document.getElementById("chatSend");
+
+      chatBubble.onclick = () => {
+        chatPanel.style.display = "flex";
+        chatBubble.style.display = "none";
+        chatInputEl.focus();
+      };
+
+      chatClose.onclick = () => {
+        chatPanel.style.display = "none";
+        chatBubble.style.display = "flex";
+      };
+
+      function appendMessage(role, text) {
+        const div = document.createElement("div");
+        div.className = "msg " + role;
+        div.textContent = text;
+        chatMessagesEl.appendChild(div);
+        chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+      }
+
+      const OPENAI_API_KEY = "YOUR_API_KEY_HERE";
+
+      async function sendChat() {
+        const content = chatInputEl.value.trim();
+        if (!content) return;
+        if (!OPENAI_API_KEY || OPENAI_API_KEY === "YOUR_API_KEY_HERE") {
+          alert("Bạn chưa cấu hình OPENAI_API_KEY trong file HTML.");
+          return;
+        }
+
+        appendMessage("user", content);
+        chatInputEl.value = "";
+        chatInputEl.disabled = true;
+        chatSendBtn.disabled = true;
+        chatSendBtn.textContent = "Đang trả lời...";
+
+        try {
+          const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + OPENAI_API_KEY,
+            },
+            body: JSON.stringify({
+              model: "gpt-4.1-mini",
+              messages: [
+                {
+                  role: "system",
+                  content:
+                    "Bạn là trợ lý cho hệ thống IoT nuôi cá 'Technology Farmers'. Hãy trả lời ngắn gọn, dễ hiểu, ưu tiên tiếng Việt.",
+                },
+                { role: "user", content },
+              ],
+            }),
+          });
+
+          if (!resp.ok) {
+            appendMessage("assistant", "⚠ Lỗi khi gọi OpenAI API: " + resp.status);
+          } else {
+            const data = await resp.json();
+            const answer =
+              data.choices?.[0]?.message?.content ||
+              "Mình không nhận được câu trả lời.";
+            appendMessage("assistant", answer);
+          }
+        } catch (err) {
+          appendMessage("assistant", "⚠ Lỗi mạng hoặc API: " + err.message);
+        } finally {
+          chatInputEl.disabled = false;
+          chatSendBtn.disabled = false;
+          chatSendBtn.textContent = "Gửi";
+          chatInputEl.focus();
+        }
+      }
+
+      chatSendBtn.onclick = sendChat;
+      chatInputEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          sendChat();
+        }
+      });
+
+      // ========= INIT =========
+      window.addEventListener("load", () => {
+        initCharts();
+        connectMQTT();
+      });
+    </script>
+  </body>
+</html>
